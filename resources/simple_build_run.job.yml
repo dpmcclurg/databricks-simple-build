@@ -1,0 +1,16 @@
+resources:
+  jobs:
+    simple_build_run:
+      name: simple_build_run
+      description: Picks up new files, rebuilds the daily rows and checks, writes the outbound CSVs and the metric view.
+      tasks:
+        - task_key: ingest_and_transform
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.simple_build_ingestion.id}
+        - task_key: publish
+          depends_on: [{task_key: ingest_and_transform}]
+          notebook_task:
+            notebook_path: ../src/notebooks/publish.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${resources.schemas.simple_build.name}

@@ -1,0 +1,17 @@
+resources:
+  pipelines:
+    simple_build_ingestion:
+      name: simple_build_ingestion
+      catalog: ${var.catalog}
+      schema: ${resources.schemas.simple_build.name}
+      serverless: true
+      channel: CURRENT
+      root_path: ../src/pipeline
+      libraries:
+        - file:
+            path: ../src/pipeline/ingestion.py
+        - file:
+            path: ../src/pipeline/transforms.sql
+      configuration:
+        simple_build.incoming: /Volumes/${var.catalog}/${resources.schemas.simple_build.name}/landing/incoming/
+        simple_build.lookup: /Volumes/${var.catalog}/${resources.schemas.simple_build.name}/landing/customer_revenue_type.csv

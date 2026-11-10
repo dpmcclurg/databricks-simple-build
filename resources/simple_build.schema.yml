@@ -1,0 +1,6 @@
+resources:
+  schemas:
+    simple_build:
+      name: ${var.schema}
+      catalog_name: ${var.catalog}
+      comment: Revenue adjustments teaching build. Synthetic data only.

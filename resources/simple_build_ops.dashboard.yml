@@ -1,0 +1,8 @@
+resources:
+  dashboards:
+    simple_build_ops:
+      display_name: Simple Build (ops)
+      file_path: ../src/dashboards/simple_build_ops.lvdash.json
+      warehouse_id: ${resources.sql_warehouses.simple_build_wh.id}
+      dataset_catalog: ${var.catalog}
+      dataset_schema: ${resources.schemas.simple_build.name}

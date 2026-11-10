@@ -1,0 +1,24 @@
+resources:
+  jobs:
+    simple_build_setup:
+      name: simple_build_setup
+      description: Run me first. Copies the sample files into the Volume, builds the legacy table, then runs the pipeline and publishes.
+      tasks:
+        - task_key: seed
+          notebook_task:
+            notebook_path: ../src/notebooks/seed.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${resources.schemas.simple_build.name}
+              data_dir: ${workspace.file_path}/data
+        - task_key: ingest_and_transform
+          depends_on: [{task_key: seed}]
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.simple_build_ingestion.id}
+        - task_key: publish
+          depends_on: [{task_key: ingest_and_transform}]
+          notebook_task:
+            notebook_path: ../src/notebooks/publish.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${resources.schemas.simple_build.name}

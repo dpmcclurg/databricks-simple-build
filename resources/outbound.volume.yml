@@ -1,0 +1,8 @@
+resources:
+  volumes:
+    outbound:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.simple_build.name}
+      name: outbound
+      volume_type: MANAGED
+      comment: One reconciliation CSV per month.

@@ -1,0 +1,39 @@
+# A small teaching bundle: a monthly revenue adjustment file becomes daily
+# revenue rows, is reconciled back to the file and compared with a legacy
+# table, and is reported on with SQL alerts, a dashboard and a metric view.
+bundle:
+  name: simple_build
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: >-
+      Existing catalog to deploy into. On an FEVM workspace this is
+      serverless_stable_<id>_catalog.
+  schema:
+    description: Schema name. Development mode adds a dev_<user>_ prefix.
+    default: simple_build
+  alert_pause_status:
+    description: PAUSED (evaluate alerts by hand with "Run now") or UNPAUSED (hourly).
+    default: PAUSED
+
+targets:
+  # The shared copy. FEVM workspaces come with one catalog, named after the
+  # workspace (serverless_stable_<id>_catalog); bundles can't create catalogs
+  # there (the API requires a storage location), so pass that catalog in:
+  #   databricks bundle deploy -t fevm --var catalog=serverless_stable_<id>_catalog
+  fevm:
+    default: true
+    permissions:
+      - level: CAN_MANAGE
+        user_name: ${workspace.current_user.userName}
+      - level: CAN_MANAGE
+        group_name: users
+
+  # Each engineer's personal copy in the same catalog: names get a
+  # [dev <user>] prefix, the schema a dev_<user>_ prefix, and schedules pause.
+  #   databricks bundle deploy -t dev --var catalog=<catalog>
+  dev:
+    mode: development

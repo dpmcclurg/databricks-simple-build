@@ -1,0 +1,23 @@
+# A reconciliation break doesn't fail any job, so these alerts are the signal.
+resources:
+  alerts:
+    simple_build_parse_errors:
+      display_name: simple_build parse errors
+      warehouse_id: ${resources.sql_warehouses.simple_build_wh.id}
+      query_text: >-
+        SELECT count(*) AS n
+        FROM ${var.catalog}.${resources.schemas.simple_build.name}.adjustment_files
+        WHERE parse_error IS NOT NULL
+      evaluation:
+        comparison_operator: GREATER_THAN
+        source:
+          name: n
+          display: n
+        threshold:
+          value:
+            double_value: 0
+        empty_result_state: OK
+      schedule:
+        pause_status: ${var.alert_pause_status}
+        quartz_cron_schedule: '0 0 * * * ?'
+        timezone_id: America/Chicago

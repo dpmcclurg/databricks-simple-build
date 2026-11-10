@@ -1,0 +1,568 @@
+{
+  "datasets": [
+    {
+      "name": "ds_kpis",
+      "displayName": "KPIs",
+      "queryLines": [
+        "SELECT\n",
+        "  (SELECT count(*) FROM adjustment_files WHERE parse_error IS NULL)     AS files_loaded,\n",
+        "  (SELECT count(*) FROM adjustment_files WHERE parse_error IS NOT NULL) AS files_failed,\n",
+        "  (SELECT count(*) FROM adjustment_reconciliation WHERE status = 'OK')  AS recon_ok,\n",
+        "  (SELECT count(*) FROM adjustment_reconciliation WHERE status <> 'OK') AS recon_breaks\n"
+      ]
+    },
+    {
+      "name": "ds_files",
+      "displayName": "Files",
+      "queryLines": [
+        "SELECT source_file_name, source_modified_at, row_count, parse_error,\n",
+        "       CASE WHEN parse_error IS NULL THEN 'Loaded' ELSE 'Failed' END AS file_status\n",
+        "FROM adjustment_files\n",
+        "ORDER BY source_modified_at DESC\n"
+      ]
+    },
+    {
+      "name": "ds_rows",
+      "displayName": "Rows per month",
+      "queryLines": [
+        "SELECT CAST(date_trunc('MONTH', revenue_date) AS DATE) AS month, revenue_type_code,\n",
+        "       COUNT(*) AS days, SUM(revenue_amount) AS revenue\n",
+        "FROM revenue_adjustment_daily\n",
+        "GROUP BY ALL\n",
+        "ORDER BY ALL\n"
+      ]
+    },
+    {
+      "name": "ds_recon",
+      "displayName": "Reconciliation",
+      "queryLines": [
+        "SELECT year_month, customer_id, revenue_type_code, source_file_name, file_total, spread_total, difference, status\n",
+        "FROM adjustment_reconciliation\n",
+        "ORDER BY year_month, customer_id\n"
+      ]
+    },
+    {
+      "name": "ds_legacy",
+      "displayName": "Legacy compare",
+      "queryLines": [
+        "SELECT month_start, ours, legacy, only_ours, only_legacy, matched, status\n",
+        "FROM legacy_compare\n",
+        "ORDER BY month_start\n"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "ops",
+      "displayName": "Operations",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layout": [
+        {
+          "widget": {
+            "name": "header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Revenue adjustments: operations\n",
+                "Did the file load, does the daily spread add back to the file, and does it match the legacy table? A break doesn't fail the job, so the two SQL alerts watch the same numbers shown here.\n"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "files-loaded",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpis",
+                  "fields": [
+                    {
+                      "name": "sum(files_loaded)",
+                      "expression": "SUM(`files_loaded`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(files_loaded)",
+                  "displayName": "Files loaded"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Files loaded"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "files-failed",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpis",
+                  "fields": [
+                    {
+                      "name": "sum(files_failed)",
+                      "expression": "SUM(`files_failed`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(files_failed)",
+                  "displayName": "Files failed"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Files failed"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "recon-ok",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpis",
+                  "fields": [
+                    {
+                      "name": "sum(recon_ok)",
+                      "expression": "SUM(`recon_ok`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(recon_ok)",
+                  "displayName": "Reconciliation OK"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Reconciliation OK"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "recon-breaks",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpis",
+                  "fields": [
+                    {
+                      "name": "sum(recon_breaks)",
+                      "expression": "SUM(`recon_breaks`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(recon_breaks)",
+                  "displayName": "Reconciliation breaks"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Reconciliation breaks"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "files",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_files",
+                  "fields": [
+                    {
+                      "name": "source_file_name",
+                      "expression": "`source_file_name`"
+                    },
+                    {
+                      "name": "source_modified_at",
+                      "expression": "`source_modified_at`"
+                    },
+                    {
+                      "name": "row_count",
+                      "expression": "`row_count`"
+                    },
+                    {
+                      "name": "file_status",
+                      "expression": "`file_status`"
+                    },
+                    {
+                      "name": "parse_error",
+                      "expression": "`parse_error`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "source_file_name",
+                    "displayName": "File"
+                  },
+                  {
+                    "fieldName": "source_modified_at",
+                    "displayName": "Arrived"
+                  },
+                  {
+                    "fieldName": "row_count",
+                    "displayName": "Rows"
+                  },
+                  {
+                    "fieldName": "file_status",
+                    "displayName": "Status"
+                  },
+                  {
+                    "fieldName": "parse_error",
+                    "displayName": "Parse error"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Files loaded and failed"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "rows",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_rows",
+                  "fields": [
+                    {
+                      "name": "month",
+                      "expression": "`month`"
+                    },
+                    {
+                      "name": "revenue_type_code",
+                      "expression": "`revenue_type_code`"
+                    },
+                    {
+                      "name": "days",
+                      "expression": "`days`"
+                    },
+                    {
+                      "name": "revenue",
+                      "expression": "`revenue`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "month",
+                    "displayName": "Month"
+                  },
+                  {
+                    "fieldName": "revenue_type_code",
+                    "displayName": "Revenue type"
+                  },
+                  {
+                    "fieldName": "days",
+                    "displayName": "Days"
+                  },
+                  {
+                    "fieldName": "revenue",
+                    "displayName": "Revenue"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Rows per month"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 5,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "recon",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_recon",
+                  "fields": [
+                    {
+                      "name": "year_month",
+                      "expression": "`year_month`"
+                    },
+                    {
+                      "name": "customer_id",
+                      "expression": "`customer_id`"
+                    },
+                    {
+                      "name": "revenue_type_code",
+                      "expression": "`revenue_type_code`"
+                    },
+                    {
+                      "name": "source_file_name",
+                      "expression": "`source_file_name`"
+                    },
+                    {
+                      "name": "file_total",
+                      "expression": "`file_total`"
+                    },
+                    {
+                      "name": "spread_total",
+                      "expression": "`spread_total`"
+                    },
+                    {
+                      "name": "difference",
+                      "expression": "`difference`"
+                    },
+                    {
+                      "name": "status",
+                      "expression": "`status`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "year_month",
+                    "displayName": "Month"
+                  },
+                  {
+                    "fieldName": "customer_id",
+                    "displayName": "Customer"
+                  },
+                  {
+                    "fieldName": "revenue_type_code",
+                    "displayName": "Revenue type"
+                  },
+                  {
+                    "fieldName": "source_file_name",
+                    "displayName": "File"
+                  },
+                  {
+                    "fieldName": "file_total",
+                    "displayName": "File total"
+                  },
+                  {
+                    "fieldName": "spread_total",
+                    "displayName": "Spread total"
+                  },
+                  {
+                    "fieldName": "difference",
+                    "displayName": "Difference"
+                  },
+                  {
+                    "fieldName": "status",
+                    "displayName": "Status"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Reconciliation (pass/fail)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "legacy",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_legacy",
+                  "fields": [
+                    {
+                      "name": "month_start",
+                      "expression": "`month_start`"
+                    },
+                    {
+                      "name": "ours",
+                      "expression": "`ours`"
+                    },
+                    {
+                      "name": "legacy",
+                      "expression": "`legacy`"
+                    },
+                    {
+                      "name": "only_ours",
+                      "expression": "`only_ours`"
+                    },
+                    {
+                      "name": "only_legacy",
+                      "expression": "`only_legacy`"
+                    },
+                    {
+                      "name": "matched",
+                      "expression": "`matched`"
+                    },
+                    {
+                      "name": "status",
+                      "expression": "`status`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "month_start",
+                    "displayName": "Month"
+                  },
+                  {
+                    "fieldName": "ours",
+                    "displayName": "Our rows"
+                  },
+                  {
+                    "fieldName": "legacy",
+                    "displayName": "Legacy rows"
+                  },
+                  {
+                    "fieldName": "only_ours",
+                    "displayName": "Only ours"
+                  },
+                  {
+                    "fieldName": "only_legacy",
+                    "displayName": "Only legacy"
+                  },
+                  {
+                    "fieldName": "matched",
+                    "displayName": "Matched"
+                  },
+                  {
+                    "fieldName": "status",
+                    "displayName": "Status"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Legacy compare (exact match)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 16,
+            "width": 12,
+            "height": 4
+          }
+        }
+      ]
+    }
+  ]
+}
